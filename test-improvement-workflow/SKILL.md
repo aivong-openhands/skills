@@ -51,10 +51,10 @@ This produces:
 
 ## Step 2: Prioritize Recommendations
 
-After receiving recommendations, ask for the most efficient implementation order:
+After receiving recommendations, ask the test-design-reviewer for the most efficient implementation order:
 
 ```
-suggest an order for the top 3 recommendations that is most efficient
+test-design-reviewer suggest an order for the top 3 recommendations that is most efficient
 ```
 
 The response should consider:
@@ -273,7 +273,7 @@ assert_file_contains_all(file, ["key1", "key2"])
 | Step | Action | Skill |
 |------|--------|-------|
 | 1 | Audit test quality | test-design-reviewer |
-| 2 | Prioritize recommendations | (analysis) |
+| 2 | Prioritize recommendations | test-design-reviewer |
 | 3 | Create implementation plan | TDD + Refactoring |
 | 4 | Execute plan with commits | TDD + Refactoring |
 | 5 | Re-audit in new conversation | test-design-reviewer |
@@ -286,7 +286,7 @@ To begin the test improvement workflow:
 
 1. **Audit**: `test-design-reviewer audit test quality of each test file and make a report of results`
 
-2. **Prioritize**: `suggest an order for the top 3 recommendations that is most efficient`
+2. **Prioritize**: `test-design-reviewer suggest an order for the top 3 recommendations that is most efficient`
 
 3. **Plan**: `create a plan for this order that uses the refactoring skill where refactor is mentioned and the tdd skill elsewhere`
 
