@@ -53,27 +53,38 @@ This produces:
 
 ---
 
-## Step 2: Prioritize Recommendations (Automatic)
+## Step 2: Prioritize Recommendations (Using test-design-reviewer)
 
-**Do not prompt the user** - automatically determine the most efficient implementation order based on:
+**Do not prompt the user** - use the `test-design-reviewer` skill to automatically determine the most efficient implementation order.
+
+The test-design-reviewer evaluates priorities based on:
 
 - **Dependencies** between recommendations
 - **Foundation-first** approach (fix patterns before consolidating)
 - **Effort vs impact** tradeoffs
+- **Property weights** from the Farley Score formula (Understandable and Maintainable have 1.5× weight)
 
-### Priority Order Logic
+### Priority Order Logic (from test-design-reviewer)
 
-1. **First**: Changes that affect design decisions and future code (e.g., reduce implementation coupling, add abstractions)
-2. **Second**: Changes that leverage the patterns established in step 1 (e.g., consolidate with parameterization)
-3. **Third**: Changes that are easier to apply after consolidation (e.g., extract common helpers)
+Using the Farley Score weights as guidance:
+
+1. **First** (Highest impact): Changes affecting **Understandable** (1.5×) or **Maintainable** (1.5×) properties - these have the highest weight in the Farley Score
+2. **Second**: Changes affecting **Repeatable** (1.25×) - reliability is critical for trust
+3. **Third**: Changes affecting **Atomic**, **Necessary**, **Granular**, or **First** (1.0×) - core principles
+4. **Last**: Changes affecting **Fast** (0.75×) - can be optimized later
+
+Within each tier, order by:
+- Design decisions affecting future code first (e.g., reduce implementation coupling)
+- Changes that leverage patterns from earlier steps (e.g., consolidate with parameterization)
+- Cleanup that's easier after consolidation (e.g., extract common helpers)
 
 ### Example Priority Order
 
-| Order | Recommendation | Rationale |
-|-------|----------------|-----------|
-| 1st | Reduce implementation coupling | Design decision affecting future code |
-| 2nd | Consolidate with parameterization | Uses cleaner patterns from step 1 |
-| 3rd | Extract common helpers | Fewer places to apply after consolidation |
+| Order | Recommendation | Property Affected | Rationale |
+|-------|----------------|-------------------|-----------|
+| 1st | Reduce implementation coupling | Maintainable (1.5×) | Design decision affecting future code |
+| 2nd | Consolidate with parameterization | Necessary (1.0×) | Uses cleaner patterns from step 1 |
+| 3rd | Extract common helpers | Understandable (1.5×) | Fewer places to apply after consolidation |
 
 ---
 
@@ -339,14 +350,14 @@ assert_file_contains_all(file, ["key1", "key2"])
 
 ## Workflow Summary
 
-| Step | Action | Prompts User? |
-|------|--------|---------------|
-| 1 | Audit test quality | No |
-| 2 | Prioritize recommendations | No (automatic) |
-| 3 | Create implementation plan | No (automatic) |
-| 4 | Execute plan with commits | No |
-| 5 | Evaluate skip vs proceed | **Yes** (if score ≥ 8.0) |
-| 6 | Re-run in new conversation | No |
+| Step | Action | Skill Used | Prompts User? |
+|------|--------|------------|---------------|
+| 1 | Audit test quality | test-design-reviewer | No |
+| 2 | Prioritize recommendations | test-design-reviewer | No (automatic) |
+| 3 | Create implementation plan | TDD + Refactoring | No (automatic) |
+| 4 | Execute plan with commits | TDD + Refactoring | No |
+| 5 | Evaluate skip vs proceed | test-design-reviewer | **Yes** (if score ≥ 8.0) |
+| 6 | Re-run in new conversation | test-improvement-workflow | No |
 
 ---
 
