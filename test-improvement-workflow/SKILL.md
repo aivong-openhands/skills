@@ -263,6 +263,28 @@ git add -A && git commit -m "refactor: consolidate tests with parameterization"
 | Refactoring | `refactor: <description>` | `refactor: consolidate tests with @pytest.mark.parametrize` |
 | Tests only | `test: <description>` | `test: add failing tests for new helper` |
 
+### Pushing Changes
+
+After completing all improvements, push the test changes but **do NOT push the `.agents/skills/` directory**:
+
+```bash
+# Verify .agents/skills is untracked (not staged)
+git status
+
+# Push only the committed test improvements
+git push origin <branch-name>
+```
+
+**Important**: The skills added to `.agents/skills/` during this workflow are workspace-local tools. They should NOT be committed to the repository being improved. If accidentally staged, unstage them:
+
+```bash
+# If .agents/skills was accidentally staged, unstage it
+git reset HEAD .agents/skills/
+
+# Or add to .gitignore if not already present
+echo ".agents/skills/" >> .gitignore
+```
+
 ---
 
 ## Step 6: Unbiased Re-evaluation
