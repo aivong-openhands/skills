@@ -98,6 +98,7 @@ Within each tier, order by:
 |-----------|-------|-------------|
 | Adding new code | **TDD** | New helper methods, new test utilities |
 | Modifying existing code | **Refactoring** | Consolidating tests, updating assertions |
+| Adding comments/documentation | **test-design-reviewer** | Edge case comments, docstrings, test documentation |
 | Verification | **TDD** | Running tests, checking coverage |
 
 ### Plan Structure
@@ -115,6 +116,12 @@ Each phase should follow this pattern:
 2. 🔄 **REFACTOR**: Make behavior-preserving changes
 3. ✅ **VERIFY**: Run tests to confirm no regressions
 4. 💾 **COMMIT**: Save refactored code
+
+**For documentation improvements (test-design-reviewer skill):**
+1. 📖 **ANALYZE**: Use Farley's properties to identify what comments are needed
+2. ✏️ **DOCUMENT**: Add comments explaining WHY, not just WHAT
+3. ✅ **VERIFY**: Run tests to confirm no syntax errors
+4. 💾 **COMMIT**: Save documentation changes
 
 ### Example Plan Structure
 
