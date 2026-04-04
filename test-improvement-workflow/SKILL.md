@@ -226,7 +226,7 @@ sufficiently satisfies Farley's [Property] property.
 
 ### Overall Skip Threshold
 
-If the **Farley Score is ≥ 8.0**, ask the user whether to proceed with improvements:
+If the **Farley Score is ≥ 9.0**, ask the user whether to proceed with improvements:
 
 ```markdown
 ## ⚠️ High-Quality Test Suite Detected
