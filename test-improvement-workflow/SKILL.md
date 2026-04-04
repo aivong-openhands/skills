@@ -203,18 +203,18 @@ After completing the plan (or before executing low-priority items), evaluate whe
 
 ### When to Recommend Skipping
 
-Reference the **test-design-reviewer** scoring criteria to justify skipping:
+Reference the **test-design-reviewer** scoring criteria to justify skipping. Since the overall skip threshold is **9.0 (Exemplary)**, individual property thresholds are set accordingly:
 
 | Property | Skip When | Justification Using Farley's Properties |
 |----------|-----------|------------------------------------------|
-| Understandable | Score ≥ 8 | Tests already read like specifications; additional clarity adds marginal value |
-| Maintainable | Score ≥ 8 | Abstractions are sufficient; more helpers may over-engineer |
-| Repeatable | Score ≥ 9 | Tests are deterministic; no flakiness to address |
-| Atomic | Score ≥ 9 | Tests are isolated; further isolation is unnecessary |
-| Necessary | Score ≥ 8 | No significant redundancy; consolidation may reduce coverage |
-| Granular | Score ≥ 8 | Tests are focused; splitting further reduces readability |
-| Fast | Score ≥ 8 | Tests are quick enough; micro-optimizations waste effort |
-| First (TDD) | Score ≥ 7 | Evidence of test-first; historical changes not worth rewriting |
+| Understandable | Score ≥ 9 | Tests read like specifications; behavior is crystal clear without reading implementation |
+| Maintainable | Score ≥ 9 | Proper abstractions in place; changes to implementation rarely break tests |
+| Repeatable | Score ≥ 9 | Tests are deterministic; same result every time, anywhere |
+| Atomic | Score ≥ 9 | Tests are completely isolated; no shared state; parallelizable |
+| Necessary | Score ≥ 9 | Every test adds value; no redundancy; guides development decisions |
+| Granular | Score ≥ 9 | Each test asserts one thing; failures pinpoint exact issues |
+| Fast | Score ≥ 8 | Tests execute quickly; minor optimization opportunities only (lower threshold as Fast has 0.75× weight) |
+| First (TDD) | Score ≥ 8 | Clear evidence of test-first approach; tests drive design (lower threshold as historical evidence is harder to assess) |
 
 ### Skip Recommendation Format
 
@@ -246,9 +246,9 @@ If the **Farley Score is ≥ 9.0**, ask the user whether to proceed with improve
 ```markdown
 ## ⚠️ High-Quality Test Suite Detected
 
-**Current Farley Score: X.X/10 (Excellent)**
+**Current Farley Score: X.X/10 (Exemplary)**
 
-This test suite already demonstrates strong adherence to Dave Farley's 
+This test suite already demonstrates exemplary adherence to Dave Farley's 
 principles. The recommended improvements would yield diminishing returns:
 
 | Improvement | Est. Score Impact | Effort | Recommendation |
