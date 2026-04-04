@@ -59,69 +59,93 @@ This produces:
 
 ---
 
-## Step 2: Prioritize Recommendations (Using test-design-reviewer)
+## Step 2: Calculate Efficiency Scores and Prioritize
 
-**Do not prompt the user** - use the `test-design-reviewer` skill to automatically determine the most efficient implementation order.
+**CRITICAL**: You MUST calculate an Efficiency Score for each improvement and sort by efficiency (highest first). Do not skip this calculation.
 
-The test-design-reviewer evaluates priorities based on:
+### Efficiency Score Formula
 
-- **Dependencies** between recommendations
-- **Foundation-first** approach (fix patterns before consolidating)
-- **Effort vs impact** tradeoffs
-- **Property weights** from the Farley Score formula (Understandable and Maintainable have 1.5× weight)
+For each identified improvement, calculate:
 
-### Priority Order Logic (from test-design-reviewer)
+```
+Efficiency Score = (Property Weight × Score Improvement) ÷ Effort Value
 
-Using the Farley Score weights as guidance:
+Where:
+- Property Weights: Understandable=1.5, Maintainable=1.5, Repeatable=1.25, others=1.0, Fast=0.75
+- Score Improvement: Estimated points gained (e.g., improving a property from 8→9 = +1.0)
+- Effort Values: Low=1, Medium=2, High=3
+```
 
-1. **First** (Highest impact): Changes affecting **Understandable** (1.5×) or **Maintainable** (1.5×) properties - these have the highest weight in the Farley Score
-2. **Second**: Changes affecting **Repeatable** (1.25×) - reliability is critical for trust
-3. **Third**: Changes affecting **Atomic**, **Necessary**, **Granular**, or **First** (1.0×) - core principles
-4. **Last**: Changes affecting **Fast** (0.75×) - can be optimized later
+### Efficiency Score Calculation Example
 
-Within each tier, order by:
-- Design decisions affecting future code first (e.g., reduce implementation coupling)
-- Changes that leverage patterns from earlier steps (e.g., consolidate with parameterization)
-- Cleanup that's easier after consolidation (e.g., extract common helpers)
+| Improvement | Property | Weight | Δ Score | Effort | Effort Val | Efficiency |
+|-------------|----------|--------|---------|--------|------------|------------|
+| Add docstrings | Understandable | 1.5 | +0.5 | Low | 1 | **0.75** |
+| Extract helpers | Maintainable | 1.5 | +0.3 | Medium | 2 | **0.23** |
+| Speed up tests | Fast | 0.75 | +1.0 | High | 3 | **0.25** |
 
-### Example Priority Order
+**Sort order**: Add docstrings (0.75) → Speed up tests (0.25) → Extract helpers (0.23)
 
-| Order | Recommendation | Property Affected | Rationale |
-|-------|----------------|-------------------|-----------|
-| 1st | Reduce implementation coupling | Maintainable (1.5×) | Design decision affecting future code |
-| 2nd | Consolidate with parameterization | Necessary (1.0×) | Uses cleaner patterns from step 1 |
-| 3rd | Extract common helpers | Understandable (1.5×) | Fewer places to apply after consolidation |
+### Dependency Adjustments
+
+After calculating raw efficiency, adjust for dependencies:
+
+1. **Foundation-first**: If improvement B depends on A, A goes first regardless of efficiency
+2. **Compound benefits**: If A makes B easier, boost A's effective efficiency by 25%
+3. **Consolidation order**: Design changes → Consolidation → Cleanup
+
+### Final Priority Order Logic
+
+1. **Sort by Efficiency Score** (highest first)
+2. **Apply dependency adjustments** (move prerequisites earlier)
+3. **Break ties using property weight** (higher weight wins)
+
+### Worked Example
+
+Given these raw calculations:
+| Improvement | Efficiency | Depends On |
+|-------------|------------|------------|
+| Consolidate with parameterization | 0.50 | Reduce coupling |
+| Reduce implementation coupling | 0.45 | - |
+| Extract common helpers | 0.30 | Consolidation |
+
+**Final order** (after dependency adjustment):
+1. Reduce implementation coupling (0.45, but prerequisite)
+2. Consolidate with parameterization (0.50, depends on #1)
+3. Extract common helpers (0.30, depends on #2)
 
 ---
 
-## Step 3: Present Prioritized Improvements
+## Step 3: Present Prioritized Improvements with Efficiency Scores
 
 **Always show the prioritized improvements table**, regardless of the Farley Score. This helps users understand what's possible and make informed decisions.
 
 ### Improvements Table Format
 
-Present improvements in this format, ordered by efficiency (highest impact, lowest effort first):
+Present improvements in this format, **sorted by Efficiency Score (highest first)**:
 
 ```markdown
-## 📋 Prioritized Improvements
+## 📋 Prioritized Improvements (Sorted by Efficiency)
 
 **Current Farley Score: X.X/10 ([Rating])**
 
-| Priority | Improvement | Property | Impact | Effort | Skill |
-|----------|-------------|----------|--------|--------|-------|
-| 1 | [Description] | [Property] (weight×) | +0.X | Low/Med/High | [skill] |
-| 2 | [Description] | [Property] (weight×) | +0.X | Low/Med/High | [skill] |
-| ... | ... | ... | ... | ... | ... |
+| # | Improvement | Property | Δ Score | Effort | Efficiency | Skill |
+|---|-------------|----------|---------|--------|------------|-------|
+| 1 | [Description] | [Property] (1.5×) | +0.X | Low | **0.XX** | [skill] |
+| 2 | [Description] | [Property] (1.0×) | +0.X | Medium | **0.XX** | [skill] |
+| 3 | [Description] | [Property] (0.75×) | +0.X | High | **0.XX** | [skill] |
 
-**Efficiency Score** = Impact ÷ Effort (Higher is better)
+**Legend**: Efficiency = (Weight × Δ Score) ÷ Effort. Higher = better ROI.
 ```
+
+**IMPORTANT**: The Efficiency column MUST be populated with calculated values. Do not leave it blank or use placeholders.
 
 ### For Exemplary Test Suites (≥ 9.0)
 
-Even when the test suite scores ≥ 9.0 (Exemplary), **still show the improvements table** with additional context:
+Even when the test suite scores ≥ 9.0 (Exemplary), **still show the improvements table with efficiency scores**:
 
 ```markdown
-## 🏆 Exemplary Test Suite - Optional Improvements
+## 🏆 Exemplary Test Suite - Optional Improvements (Sorted by Efficiency)
 
 **Current Farley Score: X.X/10 (Exemplary)**
 
@@ -129,11 +153,12 @@ This test suite already demonstrates exemplary adherence to Dave Farley's
 principles. The following improvements are optional but could provide 
 marginal gains:
 
-| Priority | Improvement | Property | Impact | Effort | Recommendation |
-|----------|-------------|----------|--------|--------|----------------|
-| 1 | [Description] | [Property] | +0.X | [Effort] | Optional |
-| 2 | [Description] | [Property] | +0.X | [Effort] | Optional |
+| # | Improvement | Property | Δ Score | Effort | Efficiency | Status |
+|---|-------------|----------|---------|--------|------------|--------|
+| 1 | [Description] | [Property] (1.5×) | +0.X | Low | **0.XX** | Optional |
+| 2 | [Description] | [Property] (1.0×) | +0.X | Medium | **0.XX** | Optional |
 
+**Legend**: Efficiency = (Weight × Δ Score) ÷ Effort. Higher = better ROI.
 **Estimated Final Score**: X.X/10 (if all implemented)
 
 **Would you like to:**
@@ -144,18 +169,19 @@ marginal gains:
 
 ### For Good/Excellent Test Suites (< 9.0)
 
-For test suites below the exemplary threshold, present improvements as recommendations:
+For test suites below the exemplary threshold, present improvements as recommendations **sorted by efficiency**:
 
 ```markdown
-## 📋 Recommended Improvements
+## 📋 Recommended Improvements (Sorted by Efficiency)
 
 **Current Farley Score: X.X/10 ([Rating])**
 
-| Priority | Improvement | Property | Impact | Effort | Skill |
-|----------|-------------|----------|--------|--------|-------|
-| 1 | [Description] | [Property] (1.5×) | +0.X | Low | [TDD/Refactoring] |
-| 2 | [Description] | [Property] (1.0×) | +0.X | Medium | [TDD/Refactoring] |
+| # | Improvement | Property | Δ Score | Effort | Efficiency | Skill |
+|---|-------------|----------|---------|--------|------------|-------|
+| 1 | [Description] | [Property] (1.5×) | +0.X | Low | **0.XX** | [TDD/Refactoring] |
+| 2 | [Description] | [Property] (1.0×) | +0.X | Medium | **0.XX** | [TDD/Refactoring] |
 
+**Legend**: Efficiency = (Weight × Δ Score) ÷ Effort. Higher = better ROI.
 **Estimated Final Score**: X.X/10 (if all implemented)
 
 Shall I proceed with the implementation plan?
@@ -403,9 +429,15 @@ assert_file_contains_all(file, ["key1", "key2"])
 When this workflow is invoked, automatically:
 
 1. **Audit** all test files using test-design-reviewer
-2. **Prioritize** recommendations by dependency order and impact
-3. **Present** the prioritized improvements table (always, even for exemplary suites)
-4. **Plan** implementation with TDD/Refactoring skill assignments (after user confirms)
-5. **Execute** the plan, committing after each phase
-6. **Recommend** re-evaluation in a new conversation
+2. **Calculate Efficiency Scores** for each improvement using the formula:
+   ```
+   Efficiency = (Property Weight × Δ Score) ÷ Effort Value
+   ```
+3. **Sort improvements by Efficiency** (highest first), adjusting for dependencies
+4. **Present** the prioritized improvements table with Efficiency column populated
+5. **Plan** implementation with TDD/Refactoring skill assignments (after user confirms)
+6. **Execute** the plan, committing after each phase
+7. **Recommend** re-evaluation in a new conversation
+
+**CRITICAL**: Steps 2-4 ensure the user sees the most efficient fixes first. Do not skip the efficiency calculation.
 
