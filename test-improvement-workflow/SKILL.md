@@ -26,10 +26,13 @@ Ensure these skills are available in the workspace:
 │  3. PLAN: Create task list with skill assignments           │
 │     • TDD skill for new code (RED → GREEN)                  │
 │     • Refactoring skill for existing code changes           │
+│     • testing skill for edge case comments                  │
+│     • test-design-reviewer skill for other test comments    │
 ├─────────────────────────────────────────────────────────────┤
 │  4. EXECUTE: Follow plan, commit after each phase           │
 ├─────────────────────────────────────────────────────────────┤
 │  5. SKIP CHECK: Evaluate if improvements add value          │
+│     (Skip threshold: Farley Score ≥ 9.0 Exemplary)          │
 ├─────────────────────────────────────────────────────────────┤
 │  6. VERIFY: Run unbiased re-audit in NEW conversation       │
 └─────────────────────────────────────────────────────────────┘
