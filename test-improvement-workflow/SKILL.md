@@ -20,7 +20,7 @@ Ensure these skills are available in the workspace:
 ┌─────────────────────────────────────────────────────────────┐
 │  1. AUDIT: Run test-design-reviewer to get Farley Score     │
 ├─────────────────────────────────────────────────────────────┤
-│  2. PRIORITIZE: Ask for most efficient order of fixes       │
+│  2. PRIORITIZE: Determine most efficient order of fixes     │
 ├─────────────────────────────────────────────────────────────┤
 │  3. PLAN: Create task list with skill assignments           │
 │     • TDD skill for new code (RED → GREEN)                  │
@@ -28,9 +28,13 @@ Ensure these skills are available in the workspace:
 ├─────────────────────────────────────────────────────────────┤
 │  4. EXECUTE: Follow plan, commit after each phase           │
 ├─────────────────────────────────────────────────────────────┤
-│  5. VERIFY: Run unbiased re-audit in NEW conversation       │
+│  5. SKIP CHECK: Evaluate if improvements add value          │
+├─────────────────────────────────────────────────────────────┤
+│  6. VERIFY: Run unbiased re-audit in NEW conversation       │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+**Important**: This workflow proceeds automatically through steps 1-4 without prompting for user input on ordering. After execution, evaluate whether to skip remaining improvements.
 
 ---
 
@@ -49,18 +53,19 @@ This produces:
 
 ---
 
-## Step 2: Prioritize Recommendations
+## Step 2: Prioritize Recommendations (Automatic)
 
-After receiving recommendations, ask the test-design-reviewer for the most efficient implementation order:
+**Do not prompt the user** - automatically determine the most efficient implementation order based on:
 
-```
-test-design-reviewer suggest an order for the top 3 recommendations that is most efficient
-```
-
-The response should consider:
 - **Dependencies** between recommendations
 - **Foundation-first** approach (fix patterns before consolidating)
 - **Effort vs impact** tradeoffs
+
+### Priority Order Logic
+
+1. **First**: Changes that affect design decisions and future code (e.g., reduce implementation coupling, add abstractions)
+2. **Second**: Changes that leverage the patterns established in step 1 (e.g., consolidate with parameterization)
+3. **Third**: Changes that are easier to apply after consolidation (e.g., extract common helpers)
 
 ### Example Priority Order
 
@@ -72,13 +77,9 @@ The response should consider:
 
 ---
 
-## Step 3: Create Implementation Plan
+## Step 3: Create Implementation Plan (Automatic)
 
-Create a detailed task plan with skill assignments:
-
-```
-create a plan for this order
-```
+**Do not prompt the user** - automatically create a detailed task plan with skill assignments.
 
 ### Skill Assignment Rules
 
@@ -170,7 +171,75 @@ git add -A && git commit -m "refactor: consolidate tests with parameterization"
 
 ---
 
-## Step 5: Unbiased Re-evaluation
+## Step 5: Skip Check - Evaluate Improvement Value
+
+After completing the plan (or before executing low-priority items), evaluate whether remaining improvements should be skipped.
+
+### When to Recommend Skipping
+
+Reference the **test-design-reviewer** scoring criteria to justify skipping:
+
+| Property | Skip When | Justification Using Farley's Properties |
+|----------|-----------|------------------------------------------|
+| Understandable | Score ≥ 8 | Tests already read like specifications; additional clarity adds marginal value |
+| Maintainable | Score ≥ 8 | Abstractions are sufficient; more helpers may over-engineer |
+| Repeatable | Score ≥ 9 | Tests are deterministic; no flakiness to address |
+| Atomic | Score ≥ 9 | Tests are isolated; further isolation is unnecessary |
+| Necessary | Score ≥ 8 | No significant redundancy; consolidation may reduce coverage |
+| Granular | Score ≥ 8 | Tests are focused; splitting further reduces readability |
+| Fast | Score ≥ 8 | Tests are quick enough; micro-optimizations waste effort |
+| First (TDD) | Score ≥ 7 | Evidence of test-first; historical changes not worth rewriting |
+
+### Skip Recommendation Format
+
+When recommending to skip an improvement, explain using this format:
+
+```markdown
+### 🚫 Recommended Skip: [Improvement Name]
+
+**Current Score**: [Property] = X/10
+
+**Why This Doesn't Add Value**:
+Based on Dave Farley's [Property] principle, this test suite already:
+- [Specific evidence from the code]
+- [How current state meets the principle]
+
+**Cost vs Benefit**:
+- Effort required: [Low/Medium/High]
+- Expected score improvement: [+0.X]
+- Risk of introducing issues: [Description]
+
+**Recommendation**: Skip this improvement. The current implementation 
+sufficiently satisfies Farley's [Property] property.
+```
+
+### Overall Skip Threshold
+
+If the **Farley Score is ≥ 8.0**, ask the user whether to proceed with improvements:
+
+```markdown
+## ⚠️ High-Quality Test Suite Detected
+
+**Current Farley Score: X.X/10 (Excellent)**
+
+This test suite already demonstrates strong adherence to Dave Farley's 
+principles. The recommended improvements would yield diminishing returns:
+
+| Improvement | Est. Score Impact | Effort | Recommendation |
+|-------------|-------------------|--------|----------------|
+| [Name] | +0.X | [Effort] | [Skip/Proceed] |
+
+**Would you like to:**
+1. **Skip all** - The test suite is production-ready
+2. **Proceed with high-impact only** - Implement only items with Skip=Proceed
+3. **Proceed with all** - Implement all recommendations regardless
+
+Please confirm before continuing.
+```
+
+---
+
+## Step 6: Unbiased Re-evaluation
 
 **Critical**: Run the workflow again in a **new conversation** to ensure unbiased evaluation.
 
@@ -270,26 +339,24 @@ assert_file_contains_all(file, ["key1", "key2"])
 
 ## Workflow Summary
 
-| Step | Action | Skill |
-|------|--------|-------|
-| 1 | Audit test quality | test-design-reviewer |
-| 2 | Prioritize recommendations | test-design-reviewer |
-| 3 | Create implementation plan | TDD + Refactoring |
-| 4 | Execute plan with commits | TDD + Refactoring |
-| 5 | Re-run workflow in new conversation | test-improvement-workflow |
+| Step | Action | Prompts User? |
+|------|--------|---------------|
+| 1 | Audit test quality | No |
+| 2 | Prioritize recommendations | No (automatic) |
+| 3 | Create implementation plan | No (automatic) |
+| 4 | Execute plan with commits | No |
+| 5 | Evaluate skip vs proceed | **Yes** (if score ≥ 8.0) |
+| 6 | Re-run in new conversation | No |
 
 ---
 
 ## Quick Start
 
-To begin the test improvement workflow:
+When this workflow is invoked, automatically:
 
-1. **Audit**: `test-design-reviewer audit test quality of each test file and make a report of results`
-
-2. **Prioritize**: `test-design-reviewer suggest an order for the top 3 recommendations that is most efficient`
-
-3. **Plan**: `create a plan for this order that uses the refactoring skill where refactor is mentioned and the tdd skill elsewhere`
-
-4. **Execute**: Follow the plan, committing after each phase
-
-5. **Re-evaluate**: Start a NEW conversation with: `test-improvement-workflow`
+1. **Audit** all test files using test-design-reviewer
+2. **Prioritize** recommendations by dependency order and impact
+3. **Plan** implementation with TDD/Refactoring skill assignments
+4. **Execute** the plan, committing after each phase
+5. **Evaluate** whether to skip low-value improvements (explain using Farley's properties)
+6. **Recommend** re-evaluation in a new conversation
