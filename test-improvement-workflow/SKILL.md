@@ -28,15 +28,20 @@ Ensure these skills are available in the workspace:
 │     • Even for exemplary suites (≥9.0), show the list       │
 │     • Let user decide whether to proceed                    │
 ├─────────────────────────────────────────────────────────────┤
-│  4. PLAN: Create task list with skill assignments           │
+│  4. VALIDATE: Verify each improvement addresses a real issue│
+│     • Check claims against actual code with grep/search     │
+│     • Remove invalid improvements before implementation     │
+│     • Present revised list if any were invalidated          │
+├─────────────────────────────────────────────────────────────┤
+│  5. PLAN: Create task list with skill assignments           │
 │     • TDD skill for new code (RED → GREEN)                  │
 │     • Refactoring skill for existing code changes           │
 │     • testing skill for edge case comments                  │
 │     • test-design-reviewer skill for other test comments    │
 ├─────────────────────────────────────────────────────────────┤
-│  5. EXECUTE: Follow plan, commit after each phase           │
+│  6. EXECUTE: Follow plan, commit after each phase           │
 ├─────────────────────────────────────────────────────────────┤
-│  6. VERIFY: Run unbiased re-audit in NEW conversation       │
+│  7. VERIFY: Run unbiased re-audit in NEW conversation       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -204,7 +209,80 @@ Reference these thresholds when marking individual improvements as "Optional" vs
 
 ---
 
-## Step 4: Create Implementation Plan
+## Step 4: Validate Improvements Against Actual Code
+
+**CRITICAL**: Before implementing any improvements, verify each one addresses a real issue in the code. This prevents wasted effort on phantom problems.
+
+### Why Validation is Required
+
+Initial audits can produce false positives due to:
+- **Misread line numbers** - Claiming duplicate code/classes that don't exist
+- **Mischaracterized patterns** - Labeling intentional design choices as problems
+- **Overlooked documentation** - Suggesting comments that already exist
+- **Fixture misunderstanding** - Calling different fixtures "redundant" when they serve different purposes
+
+### Validation Checklist
+
+For each proposed improvement, verify with actual code inspection:
+
+| Improvement Type | Validation Method | What to Check |
+|-----------------|-------------------|---------------|
+| "Remove duplicate X" | `grep -n "class X\|def X" file.py` | Does X actually appear multiple times? |
+| "Add missing comments" | `grep -n "# \|\"\"\"" file.py` | Are comments actually absent? |
+| "Consolidate similar fixtures" | Compare fixture definitions | Do they use different sample data intentionally? |
+| "Extract common pattern" | Search for actual repetition | Is the pattern truly repeated, or just similar? |
+| "Remove redundant tests" | Analyze test purpose | Do the tests verify different behaviors? |
+
+### Validation Process
+
+For each improvement in the table:
+
+1. **State the specific claim** (e.g., "TestMainOutputMessages is duplicated at lines 262 and 1372")
+2. **Run verification command** (e.g., `grep -n "class TestMainOutputMessages" test_file.py`)
+3. **Compare result to claim**:
+   - ✅ **Valid**: Evidence supports the claim → Keep improvement
+   - ❌ **Invalid**: Evidence contradicts the claim → Remove from list
+   - ⚠️ **Partial**: Claim is overstated → Revise improvement scope
+
+### Example Validation
+
+**Proposed improvement**: "Remove duplicate TestMainOutputMessages class (lines 262 & 1372)"
+
+```bash
+$ grep -n "class TestMainOutputMessages" test_file.py
+1372:class TestMainOutputMessages:
+```
+
+**Result**: Only ONE occurrence found at line 1372. Line 262 contains a different class.
+
+**Verdict**: ❌ **Invalid** - Remove this improvement from the list.
+
+### After Validation
+
+If any improvements were invalidated:
+
+1. **Present revised assessment**:
+   ```markdown
+   ## Validation Results
+   
+   | # | Original Improvement | Verdict | Reason |
+   |---|---------------------|---------|--------|
+   | 1 | Remove duplicate class | ❌ Invalid | Only one occurrence found |
+   | 2 | Add edge case comments | ❌ Invalid | Comments already present |
+   | 3 | Extract helper function | ✅ Valid | Pattern confirmed at 3 locations |
+   
+   **Revised improvements**: Only #3 remains actionable.
+   ```
+
+2. **Recalculate Farley Score** if all improvements were invalidated:
+   - If no valid improvements remain, the test suite may already be exemplary
+   - Update the score assessment accordingly
+
+3. **Proceed only with validated improvements**
+
+---
+
+## Step 5: Create Implementation Plan
 
 **After user confirms** which improvements to implement, create a detailed task plan with skill assignments.
 
@@ -248,7 +326,7 @@ Each phase should follow this pattern:
 
 ---
 
-## Step 5: Execute the Plan
+## Step 6: Execute the Plan
 
 Follow the plan systematically:
 
@@ -337,7 +415,7 @@ echo ".agents/skills/" >> .gitignore
 
 ---
 
-## Step 6: Unbiased Re-evaluation
+## Step 7: Unbiased Re-evaluation
 
 **Critical**: Run the workflow again in a **new conversation** to ensure unbiased evaluation.
 
@@ -442,9 +520,10 @@ assert_file_contains_all(file, ["key1", "key2"])
 | 1 | Audit test quality | test-design-reviewer | No |
 | 2 | Prioritize recommendations | test-design-reviewer | No (automatic) |
 | 3 | Present improvements table | test-design-reviewer | **Yes** (always) |
-| 4 | Create implementation plan | TDD + Refactoring | No (after user confirms) |
-| 5 | Execute plan with commits | TDD + Refactoring | No |
-| 6 | Re-run in new conversation | test-improvement-workflow | No |
+| 4 | Validate improvements against code | grep/search tools | No (automatic) |
+| 5 | Create implementation plan | TDD + Refactoring | No (after user confirms) |
+| 6 | Execute plan with commits | TDD + Refactoring | No |
+| 7 | Re-run in new conversation | test-improvement-workflow | No |
 
 ---
 
@@ -459,9 +538,10 @@ When this workflow is invoked, automatically:
    ```
 3. **Sort improvements by Efficiency** (highest first), adjusting for dependencies
 4. **Present** the prioritized improvements table with Efficiency column populated
-5. **Plan** implementation with TDD/Refactoring skill assignments (after user confirms)
-6. **Execute** the plan, committing after each phase
-7. **Recommend** re-evaluation in a new conversation
+5. **Validate** each improvement against actual code using grep/search
+6. **Plan** implementation with TDD/Refactoring skill assignments (after user confirms)
+7. **Execute** the plan, committing after each phase
+8. **Recommend** re-evaluation in a new conversation
 
-**CRITICAL**: Steps 2-4 ensure the user sees the most efficient fixes first. Do not skip the efficiency calculation.
+**CRITICAL**: Steps 2-5 ensure the user sees accurate, validated improvements. Do not skip efficiency calculation or validation.
 
