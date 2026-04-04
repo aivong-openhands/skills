@@ -22,23 +22,25 @@ Ensure these skills are available in the workspace:
 │  1. AUDIT: Run test-design-reviewer to get Farley Score     │
 ├─────────────────────────────────────────────────────────────┤
 │  2. PRIORITIZE: Determine most efficient order of fixes     │
+│     (Always show prioritized improvements to user)          │
 ├─────────────────────────────────────────────────────────────┤
-│  3. PLAN: Create task list with skill assignments           │
+│  3. PRESENT: Show improvements table with effort/impact     │
+│     • Even for exemplary suites (≥9.0), show the list       │
+│     • Let user decide whether to proceed                    │
+├─────────────────────────────────────────────────────────────┤
+│  4. PLAN: Create task list with skill assignments           │
 │     • TDD skill for new code (RED → GREEN)                  │
 │     • Refactoring skill for existing code changes           │
 │     • testing skill for edge case comments                  │
 │     • test-design-reviewer skill for other test comments    │
 ├─────────────────────────────────────────────────────────────┤
-│  4. EXECUTE: Follow plan, commit after each phase           │
-├─────────────────────────────────────────────────────────────┤
-│  5. SKIP CHECK: Evaluate if improvements add value          │
-│     (Skip threshold: Farley Score ≥ 9.0 Exemplary)          │
+│  5. EXECUTE: Follow plan, commit after each phase           │
 ├─────────────────────────────────────────────────────────────┤
 │  6. VERIFY: Run unbiased re-audit in NEW conversation       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Important**: This workflow proceeds automatically through steps 1-4 without prompting for user input on ordering. After execution, evaluate whether to skip remaining improvements.
+**Important**: Always show the prioritized improvements table to the user, regardless of the Farley Score. Even exemplary test suites (≥9.0) benefit from seeing what minor improvements are possible.
 
 ---
 
@@ -92,9 +94,93 @@ Within each tier, order by:
 
 ---
 
-## Step 3: Create Implementation Plan (Automatic)
+## Step 3: Present Prioritized Improvements
 
-**Do not prompt the user** - automatically create a detailed task plan with skill assignments.
+**Always show the prioritized improvements table**, regardless of the Farley Score. This helps users understand what's possible and make informed decisions.
+
+### Improvements Table Format
+
+Present improvements in this format, ordered by efficiency (highest impact, lowest effort first):
+
+```markdown
+## 📋 Prioritized Improvements
+
+**Current Farley Score: X.X/10 ([Rating])**
+
+| Priority | Improvement | Property | Impact | Effort | Skill |
+|----------|-------------|----------|--------|--------|-------|
+| 1 | [Description] | [Property] (weight×) | +0.X | Low/Med/High | [skill] |
+| 2 | [Description] | [Property] (weight×) | +0.X | Low/Med/High | [skill] |
+| ... | ... | ... | ... | ... | ... |
+
+**Efficiency Score** = Impact ÷ Effort (Higher is better)
+```
+
+### For Exemplary Test Suites (≥ 9.0)
+
+Even when the test suite scores ≥ 9.0 (Exemplary), **still show the improvements table** with additional context:
+
+```markdown
+## 🏆 Exemplary Test Suite - Optional Improvements
+
+**Current Farley Score: X.X/10 (Exemplary)**
+
+This test suite already demonstrates exemplary adherence to Dave Farley's 
+principles. The following improvements are optional but could provide 
+marginal gains:
+
+| Priority | Improvement | Property | Impact | Effort | Recommendation |
+|----------|-------------|----------|--------|--------|----------------|
+| 1 | [Description] | [Property] | +0.X | [Effort] | Optional |
+| 2 | [Description] | [Property] | +0.X | [Effort] | Optional |
+
+**Estimated Final Score**: X.X/10 (if all implemented)
+
+**Would you like to:**
+1. **Skip all** - The test suite is already production-ready
+2. **Implement selected** - Choose specific improvements by number
+3. **Implement all** - Proceed with all optional improvements
+```
+
+### For Good/Excellent Test Suites (< 9.0)
+
+For test suites below the exemplary threshold, present improvements as recommendations:
+
+```markdown
+## 📋 Recommended Improvements
+
+**Current Farley Score: X.X/10 ([Rating])**
+
+| Priority | Improvement | Property | Impact | Effort | Skill |
+|----------|-------------|----------|--------|--------|-------|
+| 1 | [Description] | [Property] (1.5×) | +0.X | Low | [TDD/Refactoring] |
+| 2 | [Description] | [Property] (1.0×) | +0.X | Medium | [TDD/Refactoring] |
+
+**Estimated Final Score**: X.X/10 (if all implemented)
+
+Shall I proceed with the implementation plan?
+```
+
+### Property Thresholds for Skip Recommendations
+
+Reference these thresholds when marking individual improvements as "Optional" vs "Recommended":
+
+| Property | Optional When | Justification |
+|----------|---------------|---------------|
+| Understandable | Score ≥ 9 | Tests read like specifications |
+| Maintainable | Score ≥ 9 | Proper abstractions in place |
+| Repeatable | Score ≥ 9 | Tests are deterministic |
+| Atomic | Score ≥ 9 | Tests are completely isolated |
+| Necessary | Score ≥ 9 | Every test adds value |
+| Granular | Score ≥ 9 | Each test asserts one thing |
+| Fast | Score ≥ 8 | Tests execute quickly (0.75× weight) |
+| First (TDD) | Score ≥ 8 | Clear test-first evidence (harder to assess) |
+
+---
+
+## Step 4: Create Implementation Plan
+
+**After user confirms** which improvements to implement, create a detailed task plan with skill assignments.
 
 ### Skill Assignment Rules
 
@@ -134,30 +220,9 @@ Each phase should follow this pattern:
 3. ✅ **VERIFY**: Run tests to confirm no syntax errors
 4. 💾 **COMMIT**: Save documentation changes
 
-### Example Plan Structure
-
-```markdown
-## Phase 1: Reduce Implementation Coupling [TDD skill]
-
-### 1.1 RED: Write failing tests for is_unchanged() helper
-[TDD skill] Write tests expecting is_unchanged(key) method before implementing
-
-### 1.2 GREEN: Implement is_unchanged() helper
-[TDD skill] Write minimum code to make tests pass
-
-### 1.3 COMMIT before refactoring
-[TDD skill] Save working code as safety net
-
-### 1.4 REFACTOR: Update existing tests to use helper
-[Refactoring skill] Replace old assertions with new helper. No behavior change.
-
-### 1.5 VERIFY and COMMIT
-[TDD skill] Run all tests, then commit refactoring
-```
-
 ---
 
-## Step 4: Execute the Plan
+## Step 5: Execute the Plan
 
 Follow the plan systematically:
 
@@ -197,74 +262,6 @@ git add -A && git commit -m "refactor: consolidate tests with parameterization"
 | New feature | `feat: <description>` | `feat: add is_unchanged() helper to UpdateResult` |
 | Refactoring | `refactor: <description>` | `refactor: consolidate tests with @pytest.mark.parametrize` |
 | Tests only | `test: <description>` | `test: add failing tests for new helper` |
-
----
-
-## Step 5: Skip Check - Evaluate Improvement Value
-
-After completing the plan (or before executing low-priority items), evaluate whether remaining improvements should be skipped.
-
-### When to Recommend Skipping
-
-Reference the **test-design-reviewer** scoring criteria to justify skipping. Since the overall skip threshold is **9.0 (Exemplary)**, individual property thresholds are set accordingly:
-
-| Property | Skip When | Justification Using Farley's Properties |
-|----------|-----------|------------------------------------------|
-| Understandable | Score ≥ 9 | Tests read like specifications; behavior is crystal clear without reading implementation |
-| Maintainable | Score ≥ 9 | Proper abstractions in place; changes to implementation rarely break tests |
-| Repeatable | Score ≥ 9 | Tests are deterministic; same result every time, anywhere |
-| Atomic | Score ≥ 9 | Tests are completely isolated; no shared state; parallelizable |
-| Necessary | Score ≥ 9 | Every test adds value; no redundancy; guides development decisions |
-| Granular | Score ≥ 9 | Each test asserts one thing; failures pinpoint exact issues |
-| Fast | Score ≥ 8 | Tests execute quickly; minor optimization opportunities only (lower threshold as Fast has 0.75× weight) |
-| First (TDD) | Score ≥ 8 | Clear evidence of test-first approach; tests drive design (lower threshold as historical evidence is harder to assess) |
-
-### Skip Recommendation Format
-
-When recommending to skip an improvement, explain using this format:
-
-```markdown
-### 🚫 Recommended Skip: [Improvement Name]
-
-**Current Score**: [Property] = X/10
-
-**Why This Doesn't Add Value**:
-Based on Dave Farley's [Property] principle, this test suite already:
-- [Specific evidence from the code]
-- [How current state meets the principle]
-
-**Cost vs Benefit**:
-- Effort required: [Low/Medium/High]
-- Expected score improvement: [+0.X]
-- Risk of introducing issues: [Description]
-
-**Recommendation**: Skip this improvement. The current implementation 
-sufficiently satisfies Farley's [Property] property.
-```
-
-### Overall Skip Threshold
-
-If the **Farley Score is ≥ 9.0**, ask the user whether to proceed with improvements:
-
-```markdown
-## ⚠️ High-Quality Test Suite Detected
-
-**Current Farley Score: X.X/10 (Exemplary)**
-
-This test suite already demonstrates exemplary adherence to Dave Farley's 
-principles. The recommended improvements would yield diminishing returns:
-
-| Improvement | Est. Score Impact | Effort | Recommendation |
-|-------------|-------------------|--------|----------------|
-| [Name] | +0.X | [Effort] | [Skip/Proceed] |
-
-**Would you like to:**
-1. **Skip all** - The test suite is production-ready
-2. **Proceed with high-impact only** - Implement only items with Skip=Proceed
-3. **Proceed with all** - Implement all recommendations regardless
-
-Please confirm before continuing.
-```
 
 ---
 
@@ -372,9 +369,9 @@ assert_file_contains_all(file, ["key1", "key2"])
 |------|--------|------------|---------------|
 | 1 | Audit test quality | test-design-reviewer | No |
 | 2 | Prioritize recommendations | test-design-reviewer | No (automatic) |
-| 3 | Create implementation plan | TDD + Refactoring | No (automatic) |
-| 4 | Execute plan with commits | TDD + Refactoring | No |
-| 5 | Evaluate skip vs proceed | test-design-reviewer | **Yes** (if score ≥ 9.0) |
+| 3 | Present improvements table | test-design-reviewer | **Yes** (always) |
+| 4 | Create implementation plan | TDD + Refactoring | No (after user confirms) |
+| 5 | Execute plan with commits | TDD + Refactoring | No |
 | 6 | Re-run in new conversation | test-improvement-workflow | No |
 
 ---
@@ -385,7 +382,8 @@ When this workflow is invoked, automatically:
 
 1. **Audit** all test files using test-design-reviewer
 2. **Prioritize** recommendations by dependency order and impact
-3. **Plan** implementation with TDD/Refactoring skill assignments
-4. **Execute** the plan, committing after each phase
-5. **Evaluate** whether to skip low-value improvements (explain using Farley's properties)
+3. **Present** the prioritized improvements table (always, even for exemplary suites)
+4. **Plan** implementation with TDD/Refactoring skill assignments (after user confirms)
+5. **Execute** the plan, committing after each phase
 6. **Recommend** re-evaluation in a new conversation
+
