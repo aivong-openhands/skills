@@ -374,7 +374,7 @@ assert_file_contains_all(file, ["key1", "key2"])
 | 2 | Prioritize recommendations | test-design-reviewer | No (automatic) |
 | 3 | Create implementation plan | TDD + Refactoring | No (automatic) |
 | 4 | Execute plan with commits | TDD + Refactoring | No |
-| 5 | Evaluate skip vs proceed | test-design-reviewer | **Yes** (if score ≥ 8.0) |
+| 5 | Evaluate skip vs proceed | test-design-reviewer | **Yes** (if score ≥ 9.0) |
 | 6 | Re-run in new conversation | test-improvement-workflow | No |
 
 ---
