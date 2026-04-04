@@ -289,6 +289,30 @@ git add -A && git commit -m "refactor: consolidate tests with parameterization"
 | Refactoring | `refactor: <description>` | `refactor: consolidate tests with @pytest.mark.parametrize` |
 | Tests only | `test: <description>` | `test: add failing tests for new helper` |
 
+### Code Quality Guidelines
+
+When making changes to test files, follow these coding standards:
+
+- **Imports at top of file**: Always place all imports at the top of the file, never inline within test functions or classes. This ensures consistency, readability, and easier dependency tracking.
+
+```python
+# ✅ Correct: imports at top of file
+import pytest
+from mymodule import helper_function
+
+class TestMyFeature:
+    def test_example(self):
+        result = helper_function()
+        assert result == expected
+
+# ❌ Incorrect: inline imports
+class TestMyFeature:
+    def test_example(self):
+        from mymodule import helper_function  # Don't do this
+        result = helper_function()
+        assert result == expected
+```
+
 ### Pushing Changes
 
 After completing all improvements, push the test changes but **do NOT push the `.agents/skills/` directory**:
