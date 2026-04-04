@@ -1,11 +1,11 @@
 ---
 name: test-improvement-workflow
-description: This skill should be used when the user asks to "improve test quality", "refactor tests", "audit tests and fix them", or wants a systematic workflow for improving test suite quality using Dave Farley's principles. Orchestrates the test-design-reviewer, tdd, and refactoring skills into a complete improvement workflow.
+description: This skill should be used when the user asks to "improve test quality", "refactor tests", "audit tests and fix them", or wants a systematic workflow for improving test suite quality using Dave Farley's principles. Orchestrates the test-design-reviewer, tdd, testing, and refactoring skills into a complete improvement workflow.
 ---
 
 # Test Improvement Workflow
 
-A systematic workflow for improving test suite quality using Dave Farley's 8 properties of good tests. This skill orchestrates the `test-design-reviewer`, `tdd`, and `refactoring` skills into a complete improvement cycle.
+A systematic workflow for improving test suite quality using Dave Farley's 8 properties of good tests. This skill orchestrates the `test-design-reviewer`, `tdd`, `testing`, and `refactoring` skills into a complete improvement cycle.
 
 ## Prerequisites
 
@@ -13,6 +13,7 @@ Ensure these skills are available in the workspace:
 - `test-design-reviewer` - For auditing test quality using Dave Farley's framework
 - `tdd` - For RED-GREEN-MUTATE-KILL MUTANTS-REFACTOR cycle
 - `refactoring` - For safe, behavior-preserving code improvements
+- `testing` - For behavior-driven testing patterns and edge case documentation
 
 ## Workflow Overview
 
@@ -98,7 +99,8 @@ Within each tier, order by:
 |-----------|-------|-------------|
 | Adding new code | **TDD** | New helper methods, new test utilities |
 | Modifying existing code | **Refactoring** | Consolidating tests, updating assertions |
-| Adding comments/documentation | **test-design-reviewer** | Edge case comments, docstrings, test documentation |
+| Adding edge case comments | **testing** | Comments documenting boundary conditions, branch coverage, behavior-driven edge cases |
+| Adding other test comments | **test-design-reviewer** | Docstrings, test documentation, clarity improvements using Farley's Understandable property |
 | Verification | **TDD** | Running tests, checking coverage |
 
 ### Plan Structure
@@ -117,9 +119,15 @@ Each phase should follow this pattern:
 3. ✅ **VERIFY**: Run tests to confirm no regressions
 4. 💾 **COMMIT**: Save refactored code
 
-**For documentation improvements (test-design-reviewer skill):**
-1. 📖 **ANALYZE**: Use Farley's properties to identify what comments are needed
-2. ✏️ **DOCUMENT**: Add comments explaining WHY, not just WHAT
+**For edge case comments (testing skill):**
+1. 📖 **ANALYZE**: Identify boundary conditions, branch coverage gaps, and behavior-driven edge cases
+2. ✏️ **DOCUMENT**: Add comments explaining edge case rationale and expected behavior
+3. ✅ **VERIFY**: Run tests to confirm no syntax errors
+4. 💾 **COMMIT**: Save edge case documentation
+
+**For other test comments (test-design-reviewer skill):**
+1. 📖 **ANALYZE**: Use Farley's Understandable property to identify clarity needs
+2. ✏️ **DOCUMENT**: Add docstrings and comments explaining WHY, not just WHAT
 3. ✅ **VERIFY**: Run tests to confirm no syntax errors
 4. 💾 **COMMIT**: Save documentation changes
 
