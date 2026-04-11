@@ -369,74 +369,75 @@ pytest test/unit/test_billing.py::TestBilling::test_billing_full_lifecycle -v
 **Recommendation**: Investigate before other improvements. If isolation issues exist, fix them first.
 ```
 
-### For Exemplary Test Suites (≥ 9.0)
+### Standard Improvements Table Format (All Scores)
 
-Even when the test suite scores ≥ 9.0 (Exemplary), **still show the improvements table with tier classification**:
+**Always use the same tiered table format**, regardless of the Farley Score. The only difference is the header and whether improvements are marked "Optional" or "Recommended":
 
 ```markdown
-## 🏆 Exemplary Test Suite - Optional Improvements
+## 📋 Consolidated Improvements
 
-**Current Farley Score: X.X/10 (Exemplary)**
+**Current Farley Score: X.X/10 ([Rating])**
 
-This test suite already demonstrates exemplary adherence to Dave Farley's 
-principles. The following improvements are optional but could provide 
-marginal gains:
+[For scores ≥ 9.0, add: "This test suite demonstrates exemplary adherence to 
+Dave Farley's principles. The following improvements are optional."]
 
-### 🔴 CRITICAL (if any - rare for exemplary suites)
-[None identified]
+### 🔴 CRITICAL - Foundational Reliability
+| # | Improvement | Property | Effort | Efficiency | Status |
+|---|-------------|----------|--------|------------|--------|
+| 1 | [Description] | Atomic/Repeatable | Medium | N/A | ⚠️ Investigate |
 
-### 🟠 HIGH - Optional Quality Improvements
+[If none: "✅ No critical issues identified"]
+
+### 🟠 HIGH - Visible Symptoms
 | # | Improvement | Property | Δ Score | Effort | Efficiency | Status |
 |---|-------------|----------|---------|--------|------------|--------|
-| 1 | [Description] | [Property] | +0.X | Low | **0.XX** | Optional |
+| 2 | [Description] | [Property] | +0.X | Low | **0.XX** | Recommended |
+| 3 | [Description] | [Property] | +0.X | High | **0.XX** | Recommended |
 
-### 🟡 MEDIUM - Optional Developer Experience
+### 🟡 MEDIUM - Developer Experience
 | # | Improvement | Property | Δ Score | Effort | Efficiency | Status |
 |---|-------------|----------|---------|--------|------------|--------|
-| 2 | [Description] | [Property] | +0.X | Medium | **0.XX** | Optional |
+| 4 | [Description] | Fast/Granular | +0.X | Low | **0.XX** | Recommended |
+
+**Legend**: 
+- 🔴 CRITICAL: Affects test correctness - investigate first
+- 🟠 HIGH: Visible quality issues  
+- 🟡 MEDIUM: Developer experience improvements
+- Efficiency = (Weight × Δ Score) ÷ Effort
 
 **Estimated Final Score**: X.X/10 (if all implemented)
 
 **Would you like to:**
-1. **Skip all** - The test suite is already production-ready
+1. **Implement all** - Proceed with full implementation plan
 2. **Implement selected** - Choose specific improvements by number
-3. **Implement all** - Proceed with all optional improvements
+3. **Skip** - No changes needed at this time
 ```
 
-### For Good/Excellent Test Suites (< 9.0)
+### Status Labels by Score
 
-For test suites below the exemplary threshold, present improvements as recommendations **sorted by tier then efficiency**:
+| Farley Score | CRITICAL Status | HIGH/MEDIUM Status |
+|--------------|-----------------|---------------------|
+| < 6.0 (Fair/Poor) | ⚠️ Investigate | **Required** |
+| 6.0 - 7.4 (Good) | ⚠️ Investigate | Recommended |
+| 7.5 - 8.9 (Excellent) | ⚠️ Investigate | Recommended |
+| ≥ 9.0 (Exemplary) | ⚠️ Investigate | Optional |
 
-```markdown
-## 📋 Recommended Improvements (Sorted by Efficiency)
+**Note**: CRITICAL items always require investigation regardless of overall score.
 
-**Current Farley Score: X.X/10 ([Rating])**
+### Property Thresholds for Status
 
-| # | Improvement | Property | Δ Score | Effort | Efficiency | Skill |
-|---|-------------|----------|---------|--------|------------|-------|
-| 1 | [Description] | [Property] (1.5×) | +0.X | Low | **0.XX** | [TDD/Refactoring] |
-| 2 | [Description] | [Property] (1.0×) | +0.X | Medium | **0.XX** | [TDD/Refactoring] |
+Reference these thresholds when setting Status for individual improvements:
 
-**Legend**: Efficiency = (Weight × Δ Score) ÷ Effort. Higher = better ROI.
-**Estimated Final Score**: X.X/10 (if all implemented)
-
-Shall I proceed with the implementation plan?
-```
-
-### Property Thresholds for Skip Recommendations
-
-Reference these thresholds when marking individual improvements as "Optional" vs "Recommended":
-
-| Property | Optional When | Justification |
-|----------|---------------|---------------|
-| Understandable | Score ≥ 9 | Tests read like specifications |
-| Maintainable | Score ≥ 9 | Proper abstractions in place |
-| Repeatable | Score ≥ 9 | Tests are deterministic |
-| Atomic | Score ≥ 9 | Tests are completely isolated |
-| Necessary | Score ≥ 9 | Every test adds value |
-| Granular | Score ≥ 9 | Each test asserts one thing |
-| Fast | Score ≥ 8 | Tests execute quickly (0.75× weight) |
-| First (TDD) | Score ≥ 8 | Clear test-first evidence (harder to assess) |
+| Property | "Optional" When | "Recommended" When |
+|----------|-----------------|---------------------|
+| Understandable | Score ≥ 9 | Score < 9 |
+| Maintainable | Score ≥ 9 | Score < 9 |
+| Repeatable | Score ≥ 9 | Score < 9 |
+| Atomic | Score ≥ 9 | Score < 9 |
+| Necessary | Score ≥ 9 | Score < 9 |
+| Granular | Score ≥ 9 | Score < 9 |
+| Fast | Score ≥ 8 | Score < 8 |
+| First (TDD) | Score ≥ 8 | Score < 8 |
 
 ---
 
