@@ -60,7 +60,74 @@ test-design-reviewer audit test quality of each test file and make a report of r
 This produces:
 - Property scores (Understandable, Maintainable, Repeatable, Atomic, Necessary, Granular, Fast, First)
 - Farley Score (1-10 weighted average)
-- Top recommendations for improvement
+- Recommendations for improvement
+
+### Consolidating Recommendations (IMPORTANT)
+
+The audit may identify improvements in multiple places:
+- **Detailed Analysis** section (per-property observations)
+- **Areas for Improvement** section (general observations)
+- **Top Recommendations** section (prioritized list)
+
+**Problem**: Items may appear in one section but not another, or appear in multiple sections, creating confusion and potential duplicates.
+
+**Solution**: After the audit, consolidate ALL recommendations into a **single unified list**:
+
+```markdown
+## Consolidated Recommendations
+
+Collect ALL improvements from:
+1. ✅ Property-specific issues from Detailed Analysis
+2. ✅ Items from Areas for Improvement  
+3. ✅ Items from Top Recommendations
+4. ✅ Any CRITICAL patterns detected (e.g., scope='session')
+
+Then:
+- Remove duplicates (same issue mentioned in multiple places)
+- Classify by tier (CRITICAL → HIGH → MEDIUM)
+- Present as single prioritized table
+```
+
+### Example Consolidation
+
+**Before (scattered across sections):**
+```
+Detailed Analysis:
+- "Tests use time.sleep() which is slow" (Fast property)
+- "Session-scoped fixture may cause state leakage" (Atomic property)
+
+Areas for Improvement:
+- Large integration test (200+ lines)
+- Duplicated request payloads
+
+Top Recommendations:
+1. Break up large integration test
+2. Add test helpers for payloads
+3. Replace time.sleep() with freezegun
+```
+
+**After (consolidated, deduplicated, tiered):**
+```markdown
+## 📋 Consolidated Improvements
+
+### 🔴 CRITICAL - Foundational Reliability
+| # | Improvement | Property | Source |
+|---|-------------|----------|--------|
+| 1 | Fix session-scoped fixture | Atomic | Detailed Analysis |
+
+### 🟠 HIGH - Visible Symptoms
+| # | Improvement | Property | Source |
+|---|-------------|----------|--------|
+| 2 | Break up large integration test | Granular | Top Recommendations + Areas |
+| 3 | Add test helper/builder pattern | Maintainable | Top Recommendations + Areas |
+
+### 🟡 MEDIUM - Developer Experience
+| # | Improvement | Property | Source |
+|---|-------------|----------|--------|
+| 4 | Replace time.sleep() with freezegun | Fast | Detailed Analysis + Top Recs |
+```
+
+**Note**: "Replace time.sleep()" appeared in both Detailed Analysis and Top Recommendations - it's listed once with source noted.
 
 ---
 
@@ -733,6 +800,7 @@ with freeze_time("2025-01-01 12:00:00") as frozen_time:
 | Step | Action | Skill Used | Prompts User? |
 |------|--------|------------|---------------|
 | 1 | Audit test quality | test-design-reviewer | No |
+| 1b | Consolidate all recommendations | - | No (automatic) |
 | 2 | Classify by tier (CRITICAL → HIGH → MEDIUM) | test-design-reviewer | No (automatic) |
 | 3 | Present tiered improvements table | test-design-reviewer | **Yes** (always) |
 | 4 | Validate improvements against code | grep/search tools | No (automatic) |
@@ -747,20 +815,27 @@ with freeze_time("2025-01-01 12:00:00") as frozen_time:
 When this workflow is invoked, automatically:
 
 1. **Audit** all test files using test-design-reviewer
-2. **Classify improvements by tier**:
+2. **Consolidate** all recommendations into a single list:
+   - Collect from: Detailed Analysis, Areas for Improvement, Top Recommendations
+   - Remove duplicates (same issue mentioned in multiple places)
+   - Track source for each item (for traceability)
+3. **Classify improvements by tier**:
    - 🔴 **CRITICAL**: Atomic/Repeatable issues (test correctness)
    - 🟠 **HIGH**: Understandable/Maintainable/Necessary issues (visible quality)
    - 🟡 **MEDIUM**: Fast/Granular/First issues (developer experience)
-3. **Flag potential reliability risks** (e.g., `scope='session'`) as CRITICAL with investigation notes
-4. **Calculate Efficiency Scores** within each tier using the formula:
+4. **Flag potential reliability risks** (e.g., `scope='session'`) as CRITICAL with investigation notes
+5. **Calculate Efficiency Scores** within each tier using the formula:
    ```
    Efficiency = (Property Weight × Δ Score) ÷ Effort Value
    ```
-5. **Present** the tiered improvements table with CRITICAL items first
-6. **Validate** each improvement against actual code using grep/search
-7. **Plan** implementation with TDD/Refactoring skill assignments (after user confirms)
-8. **Execute** the plan, committing after each phase
-9. **Recommend** re-evaluation in a new conversation
+6. **Present** the consolidated, tiered improvements table with CRITICAL items first
+7. **Validate** each improvement against actual code using grep/search
+8. **Plan** implementation with TDD/Refactoring skill assignments (after user confirms)
+9. **Execute** the plan, committing after each phase
+10. **Recommend** re-evaluation in a new conversation
 
-**CRITICAL**: Foundational reliability issues (Tier 1) must be addressed before visible symptoms (Tier 2) or developer experience improvements (Tier 3), regardless of efficiency scores. Atomic/Repeatable issues should be flagged as CRITICAL even if not immediately visible - they are silent killers that cause tests to pass/fail for the wrong reasons.
+**CRITICAL**: 
+- Always consolidate recommendations before presenting - never show duplicates or scattered lists
+- Foundational reliability issues (Tier 1) must be addressed before visible symptoms (Tier 2) or developer experience improvements (Tier 3), regardless of efficiency scores
+- Atomic/Repeatable issues should be flagged as CRITICAL even if not immediately visible - they are silent killers that cause tests to pass/fail for the wrong reasons
 
