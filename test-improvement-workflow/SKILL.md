@@ -64,13 +64,125 @@ This produces:
 
 ---
 
-## Step 2: Calculate Efficiency Scores and Prioritize
+## Step 2: Prioritize Improvements (Reliability-First Approach)
 
-**CRITICAL**: You MUST calculate an Efficiency Score for each improvement and sort by efficiency (highest first). Do not skip this calculation.
+**CRITICAL**: Prioritize fixes by **foundational reliability first**, not by visibility or quick wins. Silent issues that affect test correctness are more dangerous than visible issues that affect developer experience.
 
-### Efficiency Score Formula
+### Priority Classification Framework
 
-For each identified improvement, calculate:
+Classify each improvement into one of three tiers:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                         PRIORITY CLASSIFICATION                                  │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  🔴 TIER 1: FOUNDATIONAL RELIABILITY (CRITICAL)                                │
+│  ─────────────────────────────────────────────────                              │
+│  Issues affecting test CORRECTNESS - tests may pass/fail for wrong reasons     │
+│                                                                                 │
+│  Properties: Atomic, Repeatable                                                 │
+│  Examples:                                                                      │
+│  • Session-scoped fixtures causing state leakage between tests                  │
+│  • Shared mutable state across test classes                                     │
+│  • Test order dependencies                                                      │
+│  • Non-deterministic behavior (time-dependent, random without seeds)            │
+│  • Tests that pass together but fail in isolation                               │
+│                                                                                 │
+│  ⚠️  FLAG AS CRITICAL even if not immediately visible!                         │
+│                                                                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  🟠 TIER 2: VISIBLE SYMPTOMS (HIGH)                                            │
+│  ─────────────────────────────────                                              │
+│  Issues with obvious, tangible problems affecting quality                       │
+│                                                                                 │
+│  Properties: Understandable, Maintainable, Necessary                            │
+│  Examples:                                                                      │
+│  • Large integration tests (100+ lines testing multiple behaviors)              │
+│  • Duplicated test code/payloads across files                                   │
+│  • Tests coupled to implementation details                                      │
+│  • Missing or unclear test documentation                                        │
+│  • Redundant tests providing no additional value                                │
+│                                                                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  🟡 TIER 3: DEVELOPER EXPERIENCE (MEDIUM)                                      │
+│  ─────────────────────────────────────────                                      │
+│  Issues affecting speed or convenience, not correctness                         │
+│                                                                                 │
+│  Properties: Fast, Granular, First (TDD)                                        │
+│  Examples:                                                                      │
+│  • Slow tests using time.sleep() instead of time mocking                        │
+│  • Tests with multiple assertions (failure diagnosis harder)                    │
+│  • Tests that appear to be written after implementation                         │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Why This Order Matters
+
+```
+What NOT to do:                   What TO do:
+─────────────────                 ───────────
+
+1. Visible symptoms first         1. Foundational reliability first
+2. Quick wins                     2. Then visible symptoms  
+3. Foundational issues last       3. Then quick wins
+
+❌ Optimizes for "easy to see"    ✅ Optimizes for "test correctness"
+```
+
+**Key Insight**: Session-scoped fixtures, state leakage, and test isolation issues are **silent killers**. Tests pass but for the wrong reasons. You don't know you have a problem until it bites you in production.
+
+### Automatic CRITICAL Flags
+
+The following patterns should be **automatically flagged as CRITICAL** during audit, even if scores appear acceptable:
+
+| Pattern | Why It's Critical | Investigation Needed |
+|---------|-------------------|---------------------|
+| `scope='session'` on fixtures | State accumulates across ALL tests | Check if resources persist between tests |
+| `scope='module'` with mutable state | State leaks within module | Verify cleanup between tests |
+| Shared class-level variables | Tests may depend on prior test mutations | Check for `cls.` variables modified in tests |
+| Missing `autouse` cleanup fixtures | Resources may not be released | Verify teardown exists |
+| `@pytest.fixture` without explicit scope | Defaults may cause issues | Verify intended scope |
+
+### Example: Session-Scoped Fixture Warning
+
+When you see:
+```python
+@pytest.fixture(autouse=True, scope='session')
+def mock_api_client():
+    """Create a mock kubernetes api client for testing."""
+    with mock_kubernetes() as api_client:
+        k8s._api_client = api_client
+        yield api_client
+        k8s._api_client = None
+```
+
+**Automatically add to recommendations:**
+
+```markdown
+| # | Improvement | Priority | Property | Note |
+|---|-------------|----------|----------|------|
+| 1 | Reconsider session-scoped `mock_api_client` fixture | 🔴 CRITICAL | Atomic | ⚠️ Needs investigation - may cause state leakage |
+```
+
+**Include investigation steps:**
+```bash
+# Verify test isolation
+pip install pytest-random-order
+pytest test/unit/ -p random_order --random-order-seed=12345
+
+# Run tests in isolation to detect order dependencies
+for test in $(pytest test/unit/ --collect-only -q | grep "::test_"); do
+    pytest "$test" || echo "FAILED: $test"
+done
+```
+
+### Efficiency Score Calculation (Within Tiers)
+
+After tier classification, calculate efficiency **within each tier**:
 
 ```
 Efficiency Score = (Property Weight × Score Improvement) ÷ Effort Value
@@ -81,76 +193,121 @@ Where:
 - Effort Values: Low=1, Medium=2, High=3
 ```
 
-### Efficiency Score Calculation Example
+**But remember**: A CRITICAL Tier 1 issue with low efficiency still comes before a HIGH Tier 2 issue with high efficiency.
 
-| Improvement | Property | Weight | Δ Score | Effort | Effort Val | Efficiency |
-|-------------|----------|--------|---------|--------|------------|------------|
-| Add docstrings | Understandable | 1.5 | +0.5 | Low | 1 | **0.75** |
-| Extract helpers | Maintainable | 1.5 | +0.3 | Medium | 2 | **0.23** |
-| Speed up tests | Fast | 0.75 | +1.0 | High | 3 | **0.25** |
+### Dependency-Aware Ordering
 
-**Sort order**: Add docstrings (0.75) → Speed up tests (0.25) → Extract helpers (0.23)
+After classifying by tier, apply dependency analysis:
 
-### Dependency Adjustments
-
-After calculating raw efficiency, adjust for dependencies:
-
-1. **Foundation-first**: If improvement B depends on A, A goes first regardless of efficiency
-2. **Compound benefits**: If A makes B easier, boost A's effective efficiency by 25%
-3. **Consolidation order**: Design changes → Consolidation → Cleanup
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           DEPENDENCY GRAPH EXAMPLE                               │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│                        ┌──────────────────────────┐                             │
+│                        │  Fix Session Scope       │                             │
+│                        │  (test isolation)        │                             │
+│                        │  🔴 CRITICAL             │                             │
+│                        └────────────┬─────────────┘                             │
+│                                     │                                           │
+│                    ┌────────────────┼────────────────┐                          │
+│                    │                │                │                          │
+│                    ▼                ▼                ▼                          │
+│   ┌─────────────────────┐  ┌─────────────────┐  ┌─────────────────┐            │
+│   │ Add Helper Pattern  │  │ Replace sleep() │  │  Other tests    │            │
+│   │ 🟠 HIGH             │  │ 🟡 MEDIUM       │  │  benefit from   │            │
+│   └──────────┬──────────┘  └────────┬────────┘  │  isolation      │            │
+│              │                      │           └─────────────────┘            │
+│              └──────────┬───────────┘                                           │
+│                         ▼                                                       │
+│              ┌─────────────────────────┐                                        │
+│              │ Break Up Large Tests    │                                        │
+│              │ 🟠 HIGH                 │                                        │
+│              └─────────────────────────┘                                        │
+│                                                                                 │
+│  EXECUTION ORDER: Fix Scope → (Helper ∥ Sleep) → Break Up Tests                │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ### Final Priority Order Logic
 
-1. **Sort by Efficiency Score** (highest first)
-2. **Apply dependency adjustments** (move prerequisites earlier)
-3. **Break ties using property weight** (higher weight wins)
-
-### Worked Example
-
-Given these raw calculations:
-| Improvement | Efficiency | Depends On |
-|-------------|------------|------------|
-| Consolidate with parameterization | 0.50 | Reduce coupling |
-| Reduce implementation coupling | 0.45 | - |
-| Extract common helpers | 0.30 | Consolidation |
-
-**Final order** (after dependency adjustment):
-1. Reduce implementation coupling (0.45, but prerequisite)
-2. Consolidate with parameterization (0.50, depends on #1)
-3. Extract common helpers (0.30, depends on #2)
+1. **Group by Tier** (CRITICAL → HIGH → MEDIUM)
+2. **Within each tier, sort by Efficiency Score** (highest first)
+3. **Apply dependency adjustments** (move prerequisites earlier)
+4. **Flag investigation needs** for CRITICAL items
 
 ---
 
-## Step 3: Present Prioritized Improvements with Efficiency Scores
+## Step 3: Present Prioritized Improvements
 
-**Always show the prioritized improvements table**, regardless of the Farley Score. This helps users understand what's possible and make informed decisions.
+**Always show the prioritized improvements table**, regardless of the Farley Score.
 
-### Improvements Table Format
-
-Present improvements in this format, **sorted by Efficiency Score (highest first)**:
+### Improvements Table Format (with Tier Classification)
 
 ```markdown
-## 📋 Prioritized Improvements (Sorted by Efficiency)
+## 📋 Prioritized Improvements
 
 **Current Farley Score: X.X/10 ([Rating])**
 
-| # | Improvement | Property | Δ Score | Effort | Efficiency | Skill |
-|---|-------------|----------|---------|--------|------------|-------|
-| 1 | [Description] | [Property] (1.5×) | +0.X | Low | **0.XX** | [skill] |
-| 2 | [Description] | [Property] (1.0×) | +0.X | Medium | **0.XX** | [skill] |
-| 3 | [Description] | [Property] (0.75×) | +0.X | High | **0.XX** | [skill] |
+### 🔴 CRITICAL - Foundational Reliability
+| # | Improvement | Property | Effort | Note |
+|---|-------------|----------|--------|------|
+| 1 | Reconsider session-scoped fixtures | Atomic | Medium | ⚠️ Needs investigation |
 
-**Legend**: Efficiency = (Weight × Δ Score) ÷ Effort. Higher = better ROI.
+### 🟠 HIGH - Visible Symptoms  
+| # | Improvement | Property | Δ Score | Effort | Efficiency |
+|---|-------------|----------|---------|--------|------------|
+| 2 | Add test helper/builder pattern | Maintainable | +0.5 | Low | **0.75** |
+| 3 | Break up large integration test | Granular | +1.0 | High | **0.33** |
+
+### 🟡 MEDIUM - Developer Experience
+| # | Improvement | Property | Δ Score | Effort | Efficiency |
+|---|-------------|----------|---------|--------|------------|
+| 4 | Replace time.sleep() with freezegun | Fast/Repeatable | +0.5 | Low | **0.50** |
+
+**Legend**: 
+- 🔴 CRITICAL: Affects test correctness - may cause false passes/failures
+- 🟠 HIGH: Visible quality issues
+- 🟡 MEDIUM: Developer experience improvements
+- Efficiency = (Weight × Δ Score) ÷ Effort. Higher = better ROI within tier.
 ```
 
-**IMPORTANT**: The Efficiency column MUST be populated with calculated values. Do not leave it blank or use placeholders.
+### Key Principle: CRITICAL Items Need Investigation Notes
+
+For CRITICAL items, always include:
+1. **Why it's flagged**: Explain the potential reliability risk
+2. **Investigation steps**: Commands to verify if it's actually a problem
+3. **Conservative approach**: Recommend investigation even if uncertain
+
+```markdown
+### 🔴 CRITICAL Investigation Required
+
+**Issue**: `mock_api_client` fixture uses `scope='session'`
+
+**Risk**: Kubernetes resources created in one test may persist to subsequent tests, causing:
+- Tests that pass together but fail in isolation
+- State leakage masking bugs
+- Order-dependent test results
+
+**Verification Steps**:
+\`\`\`bash
+# Run tests in random order to detect dependencies
+pytest test/unit/ -p random_order --random-order-seed=12345
+
+# Run a single test in isolation
+pytest test/unit/test_billing.py::TestBilling::test_billing_full_lifecycle -v
+\`\`\`
+
+**Recommendation**: Investigate before other improvements. If isolation issues exist, fix them first.
+```
 
 ### For Exemplary Test Suites (≥ 9.0)
 
-Even when the test suite scores ≥ 9.0 (Exemplary), **still show the improvements table with efficiency scores**:
+Even when the test suite scores ≥ 9.0 (Exemplary), **still show the improvements table with tier classification**:
 
 ```markdown
-## 🏆 Exemplary Test Suite - Optional Improvements (Sorted by Efficiency)
+## 🏆 Exemplary Test Suite - Optional Improvements
 
 **Current Farley Score: X.X/10 (Exemplary)**
 
@@ -158,12 +315,19 @@ This test suite already demonstrates exemplary adherence to Dave Farley's
 principles. The following improvements are optional but could provide 
 marginal gains:
 
+### 🔴 CRITICAL (if any - rare for exemplary suites)
+[None identified]
+
+### 🟠 HIGH - Optional Quality Improvements
 | # | Improvement | Property | Δ Score | Effort | Efficiency | Status |
 |---|-------------|----------|---------|--------|------------|--------|
-| 1 | [Description] | [Property] (1.5×) | +0.X | Low | **0.XX** | Optional |
-| 2 | [Description] | [Property] (1.0×) | +0.X | Medium | **0.XX** | Optional |
+| 1 | [Description] | [Property] | +0.X | Low | **0.XX** | Optional |
 
-**Legend**: Efficiency = (Weight × Δ Score) ÷ Effort. Higher = better ROI.
+### 🟡 MEDIUM - Optional Developer Experience
+| # | Improvement | Property | Δ Score | Effort | Efficiency | Status |
+|---|-------------|----------|---------|--------|------------|--------|
+| 2 | [Description] | [Property] | +0.X | Medium | **0.XX** | Optional |
+
 **Estimated Final Score**: X.X/10 (if all implemented)
 
 **Would you like to:**
@@ -174,7 +338,7 @@ marginal gains:
 
 ### For Good/Excellent Test Suites (< 9.0)
 
-For test suites below the exemplary threshold, present improvements as recommendations **sorted by efficiency**:
+For test suites below the exemplary threshold, present improvements as recommendations **sorted by tier then efficiency**:
 
 ```markdown
 ## 📋 Recommended Improvements (Sorted by Efficiency)
@@ -446,6 +610,34 @@ After the new workflow run completes its audit:
 
 ## Common Improvement Patterns
 
+### Pattern 0: Fix Session-Scoped Fixtures (🔴 CRITICAL)
+
+**Problem**: Session-scoped fixtures share state across all tests
+
+```python
+# Before (state leaks between tests)
+@pytest.fixture(autouse=True, scope='session')
+def mock_api_client():
+    with mock_kubernetes() as api_client:
+        k8s._api_client = api_client
+        yield api_client
+        k8s._api_client = None
+```
+
+**Solution**: Change to function scope for isolation
+
+```python
+# After (each test gets fresh state)
+@pytest.fixture(autouse=True)
+def mock_api_client():
+    with mock_kubernetes() as api_client:
+        k8s._api_client = api_client
+        yield api_client
+        k8s._api_client = None
+```
+
+**Why it matters**: Session-scoped fixtures are **silent killers**. Tests pass together but may fail in isolation, or worse, pass when they shouldn't due to accumulated state from previous tests.
+
 ### Pattern 1: Reduce Implementation Coupling
 
 **Problem**: Tests directly access internal data structures
@@ -511,6 +703,29 @@ def assert_file_contains_all(file_path, expected_strings):
 assert_file_contains_all(file, ["key1", "key2"])
 ```
 
+### Pattern 4: Replace time.sleep() with Time Mocking
+
+**Problem**: Tests use real delays, making them slow and flaky
+
+```python
+# Before (slow, non-deterministic)
+time.sleep(1)
+assert runtime.running_time >= 1.0
+```
+
+**Solution**: Use freezegun for deterministic time control
+
+```python
+# After (fast, deterministic)
+from freezegun import freeze_time
+from datetime import timedelta
+
+with freeze_time("2025-01-01 12:00:00") as frozen_time:
+    start_runtime()
+    frozen_time.tick(delta=timedelta(seconds=5))
+    assert runtime.running_time >= 5.0
+```
+
 ---
 
 ## Workflow Summary
@@ -518,8 +733,8 @@ assert_file_contains_all(file, ["key1", "key2"])
 | Step | Action | Skill Used | Prompts User? |
 |------|--------|------------|---------------|
 | 1 | Audit test quality | test-design-reviewer | No |
-| 2 | Prioritize recommendations | test-design-reviewer | No (automatic) |
-| 3 | Present improvements table | test-design-reviewer | **Yes** (always) |
+| 2 | Classify by tier (CRITICAL → HIGH → MEDIUM) | test-design-reviewer | No (automatic) |
+| 3 | Present tiered improvements table | test-design-reviewer | **Yes** (always) |
 | 4 | Validate improvements against code | grep/search tools | No (automatic) |
 | 5 | Create implementation plan | TDD + Refactoring | No (after user confirms) |
 | 6 | Execute plan with commits | TDD + Refactoring | No |
@@ -532,16 +747,20 @@ assert_file_contains_all(file, ["key1", "key2"])
 When this workflow is invoked, automatically:
 
 1. **Audit** all test files using test-design-reviewer
-2. **Calculate Efficiency Scores** for each improvement using the formula:
+2. **Classify improvements by tier**:
+   - 🔴 **CRITICAL**: Atomic/Repeatable issues (test correctness)
+   - 🟠 **HIGH**: Understandable/Maintainable/Necessary issues (visible quality)
+   - 🟡 **MEDIUM**: Fast/Granular/First issues (developer experience)
+3. **Flag potential reliability risks** (e.g., `scope='session'`) as CRITICAL with investigation notes
+4. **Calculate Efficiency Scores** within each tier using the formula:
    ```
    Efficiency = (Property Weight × Δ Score) ÷ Effort Value
    ```
-3. **Sort improvements by Efficiency** (highest first), adjusting for dependencies
-4. **Present** the prioritized improvements table with Efficiency column populated
-5. **Validate** each improvement against actual code using grep/search
-6. **Plan** implementation with TDD/Refactoring skill assignments (after user confirms)
-7. **Execute** the plan, committing after each phase
-8. **Recommend** re-evaluation in a new conversation
+5. **Present** the tiered improvements table with CRITICAL items first
+6. **Validate** each improvement against actual code using grep/search
+7. **Plan** implementation with TDD/Refactoring skill assignments (after user confirms)
+8. **Execute** the plan, committing after each phase
+9. **Recommend** re-evaluation in a new conversation
 
-**CRITICAL**: Steps 2-5 ensure the user sees accurate, validated improvements. Do not skip efficiency calculation or validation.
+**CRITICAL**: Foundational reliability issues (Tier 1) must be addressed before visible symptoms (Tier 2) or developer experience improvements (Tier 3), regardless of efficiency scores. Atomic/Repeatable issues should be flagged as CRITICAL even if not immediately visible - they are silent killers that cause tests to pass/fail for the wrong reasons.
 
