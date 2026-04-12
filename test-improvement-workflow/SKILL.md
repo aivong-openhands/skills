@@ -1,6 +1,19 @@
 ---
 name: test-improvement-workflow
-description: This skill should be used when the user asks to "improve test quality", "refactor tests", "audit tests and fix them", or wants a systematic workflow for improving test suite quality using Dave Farley's principles. Orchestrates the test-design-reviewer, tdd, testing, and refactoring skills into a complete improvement workflow.
+description: >
+  This skill should be used when the user asks to "improve test quality", 
+  "refactor tests", "audit tests and fix them". Orchestrates the 
+  test-design-reviewer, tdd, testing, and refactoring skills.
+version: 1.0.0
+metadata:
+  openhands:
+    requires:
+      bins: ["grep", "pytest"] # External tools needed
+    dependencies:
+      - test-design-reviewer
+      - tdd
+      - refactoring
+      - testing
 ---
 
 # Test Improvement Workflow
