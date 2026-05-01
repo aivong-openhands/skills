@@ -4,6 +4,12 @@ description: >
   This skill should be used when the user asks to "improve test quality", 
   "refactor tests", "audit tests and fix them". Orchestrates the 
   test-design-reviewer, tdd, testing, and refactoring skills.
+triggers:
+  - test improvement workflow
+  - test-improvement-workflow
+  - improve test quality
+  - refactor tests
+  - audit tests and fix them
 version: 1.0.0
 metadata:
   openhands:
